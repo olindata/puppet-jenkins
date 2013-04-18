@@ -1,8 +1,8 @@
-class jenkins::repo::debian {
+class jenkins::repo::debian($lts = 0) {
 
   include 'jenkins::repo'
 
-  if $jenkins::repo::lts == 0 {
+  if  $lts == 0 {
     apt::source { 'jenkins':
       location    => 'http://pkg.jenkins-ci.org/debian',
       release     => 'binary/',
@@ -13,7 +13,7 @@ class jenkins::repo::debian {
     }
 
   }
-  elsif $jenkins::repo::lts == 1 {
+  elsif $lts == 1 {
     apt::source { 'jenkins':
       location    => 'http://pkg.jenkins-ci.org/debian-stable',
       release     => 'binary/',
