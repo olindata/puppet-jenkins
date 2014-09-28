@@ -1,46 +1,27 @@
+require 'rubygems'
 require 'rake'
-require 'rspec/core/rake_task'
-require 'cucumber/rake/task'
 require 'puppetlabs_spec_helper/rake_tasks'
 require 'puppet-lint/tasks/puppet-lint'
+require 'puppet-syntax/tasks/puppet-syntax'
 
-task :default => [:spec]
+exclude_paths = [
+  "pkg/**/*",
+  "vendor/**/*",
+  "spec/**/*",
+  "contrib/**/*"
+]
 
+# Make sure we don't have the default rake task floating around
+Rake::Task['lint'].clear
 
-desc "Build package"
-task :build do
-  sh 'puppet-module build'
+PuppetLint.configuration.relative = true
+PuppetLint::RakeTask.new(:lint) do |l|
+  l.disable_checks = %w(80chars class_inherits_from_params_class)
+  l.ignore_paths = exclude_paths
+  l.fail_on_warnings = true
+  l.log_format = "FUK %{path}:%{linenumber}:%{check}:%{KIND}:%{message}"
 end
 
+PuppetSyntax.exclude_paths = exclude_paths
 
-Cucumber::Rake::Task.new do |t|
-  t.cucumber_opts = ['--color', '--format pretty', '--format junit -o test_reports']
-end
-
-
-desc "Run the full integration test suite (slow!)"
-task :integration => [:lint, :spec, :build, :cucumber]
-
-namespace :spec do
-  desc "Make sure some of the rspec-puppet directories/files are in place"
-  task :check do
-    dot_puppet = File.expand_path('~/.puppet')
-    unless File.exists?(dot_puppet) and File.directory?(dot_puppet)
-      puts 'rspec-puppet needs a ~/.puppet directory to run properly'
-      puts
-      puts 'I\'ll go ahead and make one for you'
-      Dir.mkdir(dot_puppet)
-      puts
-    end
-
-    unless File.exists?(File.join(dot_puppet, '/manifests/site.pp'))
-      puts 'rspec puppet needs (dummy) ~/.puppet/manifests/site.pp file to run properly'
-      puts
-      puts 'I\'ll go ahead and make one for you'
-      Dir.mkdir(File.join(dot_puppet, '/manifests'))
-      File.open(File.join(dot_puppet, '/manifests/site.pp'), 'w') do |fd|
-        fd.write('')
-      end
-    end
-  end
-end
+task :default => [:lint, :spec, :syntax]
